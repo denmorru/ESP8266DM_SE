@@ -20,22 +20,25 @@
 #define COMM_DEBUG_PORT Serial     //computer
 #define DEVICE_ID "DM0002"
 #define DEVICE_NAME "DM_sensor_device"
-#define DEVICE_MODEL_NAME "DM2SD"
+#define DEVICE_MODEL_NAME "DM2SE"
 #define TCPbufferMax 128
 #define MAX_TCPSRV_CLIENTS 1
 unsigned char response[7];
 byte cmd[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79};
+char buttonstyle[]="width:90%;height:90px;display:block;padding:5px;margin:5px;border:2px ridge black;float:left;text-align: center;";
 int bufferSize =0;
+char baseurl[]="";
+char static_ip[16] = "2.1.1.97";
+char static_gw[16] = "2.1.1.1";
+char static_sn[16] = "255.255.255.0";
 unsigned long previousMillis = 0;       
 const long interval = 5000; 
 int myChipId =666666;
 String lastResponse;
 String webPageContent;
 const char* STR_OKEY = "ok";
-const char*  STR_TRUE = "true";
+const char* STR_TRUE = "true";
 int co2 {-1};
-//const char* ssid = "denmorru";
-//const char* password = "!Denmorru6";
 ESP8266WebServer HTTP(LISTEN_WEBSERVER_PORT);
 WiFiServer SERVERaREST(8080);
 WiFiClient tcpClient;
@@ -43,8 +46,6 @@ SoftwareSerial espSerial(13,15); // RX_pin, TX_pin
 aREST rest = aREST();
 
 void setup() {
-      //      Serial1.begin(115200);      Serial1.println(" SE1 ");        Serial1.setDebugOutput(false);      Serial.begin(115200);
-        
         UART_SERVER_PORT.begin(UART_SERIAL_SPEED); 
        // UART_SERVER_PORT.flush();        UART_SERVER_PORT.swap();
         if(COMM_DEBUG_PORT != UART_SERVER_PORT){
@@ -65,17 +66,14 @@ void setup() {
         COMM_DEBUG_PORT.println("SSDP initialized");
         REST_init();
         COMM_DEBUG_PORT.println("aREST initialized");  
-        //COMM_DEBUG_PORT.println("M117 WiFiServer initialized");
         if (MDNS.begin("ESP8266DM")) {
           MDNS.addService("http", "tcp", LISTEN_WEBSERVER_PORT);
-        //COMM_DEBUG_PORT.println("M117 MDNS responder started");
+          COMM_DEBUG_PORT.println("MDNS responder started");
         }
         NBNS.begin("ESP8266DM");
-        //COMM_DEBUG_PORT.println("M117 NBNS responder started");
-       
-        //Serial.println("WiFi:");
-        //WiFi.printDiag(Serial);
-        UART_SERVER_PORT.print("M117 IP ");
+        COMM_DEBUG_PORT.println("NBNS responder started");
+
+        UART_SERVER_PORT.print("IP ");
         UART_SERVER_PORT.println(WiFi.localIP());
         EEPROM.begin(512);
 }
@@ -85,8 +83,7 @@ void loop() {
    if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
       readCO2();      
-      //DMUART_process();
-      //serialPassthrough(); 
+ 
       REST_process();
    }
 }
@@ -125,11 +122,20 @@ void VIMA_init(void){
         WiFiManager wifiManager;
         wifiManager.setDebugOutput(COMM_DEBUG_MODE);
         wifiManager.setAPStaticIPConfig(IPAddress(1,1,1,1), IPAddress(1,1,1,1), IPAddress(255,255,255,0));
+         if(static_ip){
+          IPAddress _ip,_gw,_sn;
+          _ip.fromString(static_ip);
+          _gw.fromString(static_gw);
+          _sn.fromString(static_sn);
+          wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
+        }
         wifiManager.autoConnect("ESP8266DM");
 }
 void HTTP_handleRootPage() {
-      webPageContent="DM web server for sensor device";
-        HTTP.send(200, "text/plain", webPageContent);
+      webPageContent+="DM web server for ";webPageContent+=DEVICE_NAME;
+            showLevelCO2();
+      HTTP.send(200, "text/html", webPageContent);
+      webPageContent="";
 }
 
 void HTTP_handleNotFound() {
@@ -145,46 +151,6 @@ void HTTP_handleNotFound() {
     message += " " + HTTP.argName(i) + ": " + HTTP.arg(i) + "\n";
   }
   HTTP.send(404, "text/plain", message);
-}
-
-void readCO2() {
-        // CO2
-        bool header_found {false};
-        char tries {0};
-
-        UART_SERVER_PORT.write(cmd, 9);
-        memset(response, 0, 7);
-
-        // Looking for packet start
-        while(UART_SERVER_PORT.available() && (!header_found)) {
-                if(UART_SERVER_PORT.read() == 0xff ) {
-                        if(UART_SERVER_PORT.read() == 0x86 ) header_found = true;
-                }
-        }
-
-        if (header_found) {
-                UART_SERVER_PORT.readBytes(response, 7);
-
-                byte crc = 0x86;
-                for (char i = 0; i < 6; i++) {
-                        crc+=response[i];
-                }
-                crc = 0xff - crc;
-                crc++;
-
-                if ( !(response[6] == crc) ) {
-                        COMM_DEBUG_PORT.println("CO2: CRC error: " + String(crc) + " / "+ String(response[6]));
-                } else {
-                        unsigned int responseHigh = (unsigned int) response[0];
-                        unsigned int responseLow = (unsigned int) response[1];
-                        unsigned int ppm = (256*responseHigh) + responseLow;
-                        co2 = ppm;
-                        COMM_DEBUG_PORT.println("CO2:" + String(co2));
-                }
-        } else {
-                COMM_DEBUG_PORT.println("CO2: Header not found");
-        }
-
 }
 
 void REST_process(){
