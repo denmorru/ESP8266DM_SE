@@ -1,4 +1,4 @@
-void readCO2() {
+void MHZ19_read() {
         // CO2
         bool header_found {false};
         char tries {0};
@@ -38,11 +38,12 @@ void readCO2() {
 
 }
 
-void showLevelCO2(){
-      webPageContent+="<div>";
+void MHZ19_showLevel(){
+      webPageContent+="<div style='width:100%;line-height:90px;float:left;'>MH-Z19: ";      webPageContent+="</div>";  
       webPageContent+="<div style='width:100%;line-height:90px;float:left;'> ";
       webPageContent+="<a style='background-color:";
-      if(co2<=400){webPageContent+="#00FF00;";}
+      if(co2<=0){webPageContent+="#999999;";}
+      if(co2>0 and co2<=400){webPageContent+="#00FF00;";}
       if(co2>400 and co2<=1000){webPageContent+="#FFFF00;";}
       if(co2>1000){webPageContent+="#FF0000;";}
       webPageContent+=buttonstyle;
@@ -50,6 +51,6 @@ void showLevelCO2(){
       webPageContent+=co2;
       webPageContent+="</a>";
       webPageContent+="</div>";
-      webPageContent+="</div>";  
+
 }
 

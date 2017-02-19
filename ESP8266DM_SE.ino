@@ -10,7 +10,11 @@
 #include <FS.h>
 #include <ESP8266NetBIOS.h>
 #include <ArduinoJson.h>  
+#include <DHT.h>
+#include <Wire.h>
+#include <SFE_BMP180.h>
 
+#define DHTPIN 2
 #define UART_SERIAL_SPEED 9600
 #define COMM_SERIAL_SPEED 9600
 #define COMM_DEBUG_MODE false
@@ -28,8 +32,8 @@ byte cmd[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79};
 char buttonstyle[]="width:90%;height:90px;display:block;padding:5px;margin:5px;border:2px ridge black;float:left;text-align: center;";
 int bufferSize =0;
 char baseurl[]="";
-char static_ip[16] = "2.1.1.97";
-char static_gw[16] = "2.1.1.1";
+char static_ip[16] = "1.1.1.97";
+char static_gw[16] = "1.1.1.1";
 char static_sn[16] = "255.255.255.0";
 unsigned long previousMillis = 0;       
 const long interval = 5000; 
@@ -39,6 +43,11 @@ String webPageContent;
 const char* STR_OKEY = "ok";
 const char* STR_TRUE = "true";
 int co2 {-1};
+float BMP180d=0;
+float t= -273.15; 
+float h= -1;
+DHT dht(DHTPIN, DHT11);
+SFE_BMP180 pressure;
 ESP8266WebServer HTTP(LISTEN_WEBSERVER_PORT);
 WiFiServer SERVERaREST(8080);
 WiFiClient tcpClient;
@@ -53,8 +62,7 @@ void setup() {
         COMM_DEBUG_PORT.begin(COMM_SERIAL_SPEED); 
        // COMM_DEBUG_PORT.flush();COMM_DEBUG_PORT.swap();
         }
-        
-       // Serial.println("Serial initialized");          espSerial.begin(UART_SERIAL_SPEED); 
+ 
         COMM_DEBUG_PORT.println(" ");
         COMM_DEBUG_PORT.println("Flash: ");
         COMM_DEBUG_PORT.println(ESP.getFlashChipSize());
@@ -72,20 +80,24 @@ void setup() {
         }
         NBNS.begin("ESP8266DM");
         COMM_DEBUG_PORT.println("NBNS responder started");
-
+        //Wire.pins(0,2);
+        if (pressure.begin()){COMM_DEBUG_PORT.println("BMP180 init success");}
+        else{COMM_DEBUG_PORT.println("BMP180 init failed");}
         UART_SERVER_PORT.print("IP ");
         UART_SERVER_PORT.println(WiFi.localIP());
         EEPROM.begin(512);
+        dht.begin();
 }
 void loop() {
       HTTP.handleClient();
       unsigned long currentMillis = millis();
    if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
-      readCO2();      
- 
-      REST_process();
+      MHZ19_read(); 
+      DHT11_read();     
+      BMP180_read();
    }
+   REST_process();
 }
 void SSDP_init(void){
         SSDP.setDeviceType("upnp:rootdevice");
@@ -114,6 +126,9 @@ void HTTP_init(void){
 }
 void REST_init(void){
       rest.variable("CO2ppm",&co2);
+      rest.variable("temperature",&t);
+      rest.variable("humidity",&h);
+      rest.variable("pressure",&BMP180d);
       rest.set_id(DEVICE_ID);
       rest.set_name(DEVICE_NAME);
       SERVERaREST.begin(); 
@@ -133,7 +148,9 @@ void VIMA_init(void){
 }
 void HTTP_handleRootPage() {
       webPageContent+="DM web server for ";webPageContent+=DEVICE_NAME;
-            showLevelCO2();
+      MHZ19_showLevel();
+      BMP180_showLevel();
+      DHT11_showLevel();
       HTTP.send(200, "text/html", webPageContent);
       webPageContent="";
 }
