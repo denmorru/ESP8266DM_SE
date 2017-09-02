@@ -6,3 +6,4 @@ connected to CO2 sensor MH-Z19
   
 With json data output on HTTP request to port 8080.
 Web server shows data on port 80.
+With api.xml interface for external applications.
