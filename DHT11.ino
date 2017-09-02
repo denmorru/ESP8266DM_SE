@@ -22,27 +22,29 @@ void DHT11_read() {
 }
 
 void DHT11_showLevel(){
-      webPageContent+="<div style='width:100%;line-height:90px;float:left;'>DHT11: ";      
-      webPageContent+="</div>";  
-      webPageContent+="<div style='width:100%;line-height:90px;float:left;'> ";
+      webPageContent+="<div style='width:100%;line-height:90px;float:left;' device='DHT11' sensor='temperature' value='";
+      webPageContent+=t;
+      webPageContent+="'>";
       webPageContent+="<a style='background-color:";
       if(t<=0){webPageContent+="#999999;";}
-      if(t>0 and t<=700){webPageContent+="#FFFF00;";}
-      if(t>700 and t<=800){webPageContent+="#00FF00;";}
-      if(t>800){webPageContent+="#FF0000;";}
+      if(t>0 and t<=23){webPageContent+="#FFFF00;";}
+      if(t>23 and t<=28){webPageContent+="#00FF00;";}
+      if(t>28){webPageContent+="#FF0000;";}
       webPageContent+=buttonstyle;
-      webPageContent+="'>";
+      webPageContent+="'>DHT11 temperature: ";
       webPageContent+=t;
       webPageContent+="</a>";
       webPageContent+="</div>";
-      webPageContent+="<div style='width:100%;line-height:90px;float:left;'> ";
+      webPageContent+="<div style='width:100%;line-height:90px;float:left;' device='DHT11' sensor='humidity' value='";
+      webPageContent+=h;
+      webPageContent+="'>";
       webPageContent+="<a style='background-color:";
       if(h<=0){webPageContent+="#999999;";}
       if(h>0 and h<=40){webPageContent+="#FFFF00;";}
       if(h>40 and h<=60){webPageContent+="#00FF00;";}
       if(h>60){webPageContent+="#FF0000;";}
       webPageContent+=buttonstyle;
-      webPageContent+="'>";
+      webPageContent+="'>DHT11 humidity: ";
       webPageContent+=h;
       webPageContent+="</a>";
       webPageContent+="</div>";

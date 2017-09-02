@@ -1,3 +1,4 @@
+/*DM multisensor device*/
 #include <ESP8266WiFi.h>         
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
@@ -23,7 +24,7 @@
 #define UART_SERVER_PORT espSerial //CO2 sensor
 #define COMM_DEBUG_PORT Serial     //computer
 #define DEVICE_ID "DM0002"
-#define DEVICE_NAME "DM_sensor_device"
+#define DEVICE_NAME "DM_multisensor_device"
 #define DEVICE_MODEL_NAME "DM2SE"
 #define TCPbufferMax 128
 #define MAX_TCPSRV_CLIENTS 1
@@ -44,6 +45,7 @@ const char* STR_OKEY = "ok";
 const char* STR_TRUE = "true";
 int co2 {-1};
 float BMP180d=0;
+float BMP180_t=-273.15;
 float t= -273.15; 
 float h= -1;
 DHT dht(DHTPIN, DHT11);
@@ -116,7 +118,9 @@ void SSDP_init(void){
         SSDP.begin();
 }
 void HTTP_init(void){
+        HTTP.on("/api.xml", xml_handle);
         HTTP.on("/index.html", HTTP_handleRootPage);
+        HTTP.on("/index.php", HTTP_handleRootPage);
         HTTP.on("/description.xml", HTTP_GET, [](){
           SSDP.schema(HTTP.client());
         });
@@ -126,7 +130,7 @@ void HTTP_init(void){
 }
 void REST_init(void){
       rest.variable("CO2ppm",&co2);
-      rest.variable("temperature",&t);
+      rest.variable("temperature",&BMP180_t);
       rest.variable("humidity",&h);
       rest.variable("pressure",&BMP180d);
       rest.set_id(DEVICE_ID);
@@ -147,11 +151,24 @@ void VIMA_init(void){
         wifiManager.autoConnect("ESP8266DM");
 }
 void HTTP_handleRootPage() {
-      webPageContent+="DM web server for ";webPageContent+=DEVICE_NAME;
+      webPageContent+="DM web server for ";
+      webPageContent+=DEVICE_NAME;
       MHZ19_showLevel();
       BMP180_showLevel();
       DHT11_showLevel();
       HTTP.send(200, "text/html", webPageContent);
+      webPageContent="";
+}
+void xml_handle() {
+      webPageContent+="<?xml version='1.0' encoding='utf-8'?>";
+      webPageContent+="<data><device name='";
+      webPageContent+=DEVICE_NAME;
+      webPageContent+="'>";
+      MHZ19_showLevel();
+      BMP180_showLevel();
+      DHT11_showLevel();
+      webPageContent+="</device></data>";
+      HTTP.send(200, "text/xml", webPageContent);
       webPageContent="";
 }
 

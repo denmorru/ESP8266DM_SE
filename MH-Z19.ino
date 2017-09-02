@@ -39,15 +39,16 @@ void MHZ19_read() {
 }
 
 void MHZ19_showLevel(){
-      webPageContent+="<div style='width:100%;line-height:90px;float:left;'>MH-Z19: ";      webPageContent+="</div>";  
-      webPageContent+="<div style='width:100%;line-height:90px;float:left;'> ";
+      webPageContent+="<div style='width:100%;line-height:90px;float:left;' device='MHZ19' sensor='co2percent' value='";
+      webPageContent+=co2;
+      webPageContent+="'>";
       webPageContent+="<a style='background-color:";
       if(co2<=0){webPageContent+="#999999;";}
       if(co2>0 and co2<=400){webPageContent+="#00FF00;";}
       if(co2>400 and co2<=1000){webPageContent+="#FFFF00;";}
       if(co2>1000){webPageContent+="#FF0000;";}
       webPageContent+=buttonstyle;
-      webPageContent+="'>";
+      webPageContent+="'>MHZ19 CO2: ";
       webPageContent+=co2;
       webPageContent+="</a>";
       webPageContent+="</div>";
